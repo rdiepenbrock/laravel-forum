@@ -5,7 +5,7 @@ import Pagination from "@/Components/Pagination.vue";
 import {Link} from "@inertiajs/vue3";
 import {relativeDate} from "@/Utilities/date";
 
-defineProps(['posts']);
+defineProps(['posts', 'comments']);
 
 const formatedDate = (post) => {
     return relativeDate(post.created_at);

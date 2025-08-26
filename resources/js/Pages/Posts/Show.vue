@@ -1,14 +1,34 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
-import {computed} from "vue";
 import Container from "@/Components/Container.vue";
 import Pagination from "@/Components/Pagination.vue";
-import {relativeDate} from "@/Utilities/date";
 import Comment from "@/Components/Comment.vue";
+import InputLabel from "@/Components/InputLabel.vue";
+import TextInput from "@/Components/TextInput.vue";
+import PrimaryButton from "@/Components/PrimaryButton.vue";
+
+import {computed} from "vue";
+import {router, useForm} from "@inertiajs/vue3";
+
+import {relativeDate} from "@/Utilities/date";
+import TextArea from "@/Components/TextArea.vue";
+import InputError from "@/Components/InputError.vue";
 
 const props = defineProps(['post', 'comments']);
 
 const formatedDate = computed(() => relativeDate(props.post.created_at));
+
+const commentForm = useForm({
+    body: '',
+})
+const addComment = () => commentForm.post(route('posts.comments.store', props.post.id), {
+    preserveScroll: true,
+    onSuccess: () => commentForm.reset(),
+});
+
+const deleteComment = (commentId) => router.delete(route('comments.destroy', { comment: commentId, page: props.comments.meta.current_page }), {
+    preserveScroll: true,
+});
 </script>
 
 <template>
@@ -24,12 +44,35 @@ const formatedDate = computed(() => relativeDate(props.post.created_at));
             <div class="mt-12">
                 <h2 class="text-xl font-semibold">Comments</h2>
 
+                <form v-if="$page.props.auth.user"
+                      @submit.prevent="addComment"
+                      class="mt-4">
+                    <div>
+                        <InputLabel for="body"
+                                    class="sr-only">
+                            Comment
+                        </InputLabel>
+                        <TextArea id="body"
+                                  v-model="commentForm.body"
+                                  placeholder="add comment"
+                                  rows="4 "/>
+
+                        <InputError :message="commentForm.errors.body" class="mt-1" />
+                    </div>
+
+                    <PrimaryButton type="submit"
+                                   class="mt-3"
+                                   :disabled="commentForm.processing">
+                        Add Comment
+                    </PrimaryButton>
+                </form>
+
                 <ul class="divide-y mt-4">
                     <li v-for="comment in comments.data"
                         :key="comment.id"
                         class="px-2 py-4"
                     >
-                        <Comment :comment="comment" />
+                        <Comment @delete="deleteComment" :comment="comment" />
                     </li>
                 </ul>
 
