@@ -4,20 +4,19 @@ import Container from "@/Components/Container.vue";
 import Pagination from "@/Components/Pagination.vue";
 import Comment from "@/Components/Comment.vue";
 import InputLabel from "@/Components/InputLabel.vue";
-import TextInput from "@/Components/TextInput.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 
 import {computed, ref} from "vue";
-import {router, useForm} from "@inertiajs/vue3";
+import {Head, Link, router, useForm} from "@inertiajs/vue3";
 
 import {relativeDate} from "@/Utilities/date";
-import TextArea from "@/Components/TextArea.vue";
 import InputError from "@/Components/InputError.vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
 import {useConfirm} from "@/Utilities/Composables/useConfirm";
 import MarkdownEditor from "@/Components/MarkdownEditor.vue";
 import PageHeading from "@/Components/PageHeading.vue";
 import Pill from "@/Components/Pill.vue";
+import {HandThumbUpIcon, HandThumbDownIcon} from "@heroicons/vue/20/solid";
 
 const props = defineProps(['post', 'comments']);
 
@@ -68,13 +67,25 @@ const deleteComment = async (commentId) => {
         return;
     }
 
-    router.delete(route('comments.destroy', { comment: commentId, page: props.comments.meta.current_page }), {
-        preserveScroll: true,
-    });
+    router.delete(
+        route('comments.destroy', {
+            comment: commentId,
+            page: props.comments.data.length > 1
+                ? props.comments.meta.current_page
+                : Math.max(props.comments.meta.current_page - 1, 1)
+        }),
+        {
+            preserveScroll: true,
+        }
+    );
 };
 </script>
 
 <template>
+    <Head>
+        <link rel="canonical" :href="post.routes.show" />
+    </Head>
+
     <AppLayout :title="post.title">
         <Container>
             <Pill :href="route('posts.index', { topic: post.topic.slug })">
@@ -82,7 +93,21 @@ const deleteComment = async (commentId) => {
             </Pill>
             <PageHeading class="mt-2">{{  post.title }}</PageHeading>
 
-            <span class="block mt-1 text-sm text-gray-600">Published {{ formatedDate }} ago by {{ post.user.name }}</span>
+            <span class="block mt-1 text-sm text-gray-600">Published {{ formatedDate }} by {{ post.user.name }}</span>
+
+            <div class="mt-4">
+                <span class="text-pink-500 font-bold">{{ post.likes_count }} likes</span>
+            </div>
+            <div v-if="$page.props.auth.user" class="mt-2">
+                <Link v-if="post.can.like" :href="route('likes.store', ['post', post.id])" method="post" class="inline-block bg-indigo-600 hover:bg-pink-500 transition-colors text-white py-1.5 px-3 rounded-full">
+                    <HandThumbUpIcon class="size-4 inline-block mr-1"/>
+                    Like Post
+                </Link>
+                <Link v-else :href="route('likes.destroy', ['post', post.id])" method="delete" class="inline-block bg-indigo-600 hover:bg-pink-500 transition-colors text-white py-1.5 px-3 rounded-full">
+                    <HandThumbDownIcon class="size-4 inline-block mr-1"/>
+                    Unlike Post
+                </Link>
+            </div>
 
             <article class="mt-6 prose prose-sm max-w-none" v-html="post.html"></article>
 
@@ -101,7 +126,7 @@ const deleteComment = async (commentId) => {
                                         ref="commentTextAreaRef"
                                         v-model="commentForm.body"
                                         placeholder="add comment"
-                                        editorClass="min-h-[160px]"
+                                        editorClass="!min-h-[160px]"
                         />
 
                         <InputError :message="commentForm.errors.body" class="mt-1" />

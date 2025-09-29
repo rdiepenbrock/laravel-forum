@@ -2,16 +2,31 @@
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Container from "@/Components/Container.vue";
 import Pagination from "@/Components/Pagination.vue";
-import {Link} from "@inertiajs/vue3";
+import {Link, useForm, usePage} from "@inertiajs/vue3";
 import {relativeDate} from "@/Utilities/date";
 import PageHeading from "@/Components/PageHeading.vue";
 import Pill from "@/Components/Pill.vue";
+import InputLabel from "@/Components/InputLabel.vue";
+import TextInput from "@/Components/TextInput.vue";
+import SecondaryButton from "@/Components/SecondaryButton.vue";
+import DangerButton from "@/Components/DangerButton.vue";
 
-defineProps(['posts', 'topics', 'selectedTopic']);
+const props = defineProps(['posts', 'topics', 'selectedTopic', 'query']);
 
-const formatedDate = (post) => {
-    return relativeDate(post.created_at);
-};
+const formatedDate = (post) => relativeDate(post.created_at);
+
+const searchForm = useForm({
+    query: props.query,
+    page: 1,
+});
+
+const page = usePage();
+const search = () => searchForm.get(page.url);
+
+const clearSearch = () => {
+    searchForm.query = '';
+    search();
+}
 </script>
 
 <template>
@@ -22,7 +37,7 @@ const formatedDate = (post) => {
                 <p v-if="selectedTopic" class="mt-1 text-gray-600 text-sm">{{ selectedTopic.description }}</p>
                 <menu class="flex space-x-1 mt-3 overflow-x-auto pb-2 pt-1">
                     <li>
-                        <Pill :href="route('posts.index')"
+                        <Pill :href="route('posts.index', { query: searchForm.query })"
                               :filled="! selectedTopic"
                         >
                             All Posts
@@ -30,13 +45,27 @@ const formatedDate = (post) => {
                     </li>
                     <li v-for="topic in topics"
                         :key="topic.id">
-                        <Pill :href="route('posts.index', { topic: topic.slug })"
+                        <Pill :href="route('posts.index', { topic: topic.slug, query: searchForm.query })"
                               :filled="topic.id === selectedTopic?.id"
                         >
                             {{ topic.name }}
                         </Pill>
                     </li>
                 </menu>
+
+                <form @submit.prevent="search" class="mt-4">
+                    <div>
+                        <InputLabel for="query">Search</InputLabel>
+                        <div class="flex space-x-2 mt-1">
+                            <TextInput v-model="searchForm.query"
+                                       class="w-full"
+                                       id="query"
+                            />
+                            <SecondaryButton type="submit">Search</SecondaryButton>
+                            <DangerButton v-if="searchForm.query" @click="clearSearch">Clear</DangerButton>
+                        </div>
+                    </div>
+                </form>
             </div>
 
             <ul class="divide-y mt-4">
@@ -49,7 +78,7 @@ const formatedDate = (post) => {
                             {{ post.title }}
                         </span>
                         <span class="block pt-1 text-sm text-gray-600 group-hover:text-indigo-500">
-                            Published {{ formatedDate(post) }} ago by {{ post.user.name }}
+                            Published {{ formatedDate(post) }} by {{ post.user.name }}
                         </span>
                     </Link>
                     <Pill :href="route('posts.index', { topic: post.topic.slug })">
